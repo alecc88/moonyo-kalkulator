@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kasir Sederhana</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Hilangkan spinner di input number - Chrome, Safari, Edge, Opera */
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Hilangkan spinner di Firefox */
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex justify-center">
+  <div class="w-full max-w-[414px] min-w-[360px] bg-gray-100 flex flex-col min-h-screen">
+    <!-- Pages -->
+    <div class="flex-1">
+      <div id="page-home" class="hidden p-4">Home - Informasi Rider</div>
+      <div id="page-income" class="hidden p-4">History Pendapatan</div>
+      <div id="page-checkout" class="block p-4">
+        <div class="bg-white shadow-xl rounded-2xl p-6">
+          <h1 class="text-2xl font-bold text-center mb-4">Aplikasi Kasir</h1>
+
+          <div id="produk-list" class="space-y-4 mb-4"></div>
+
+          <div class="text-right font-semibold text-sm text-gray-600 mb-1">
+            Total <span id="total-jumlah">0</span> Qty
+          </div>
+          <div class="text-right font-bold text-xl">
+            Rp <span id="total-harga">0</span>
+          </div>
+
+          <div class="mt-4 space-y-2">
+            <div class="flex justify-between items-center">
+              <label>Set Tanggal:</label>
+              <input type="date" id="tanggal" class="border rounded-md p-1" />
+            </div>
+            <div class="flex justify-between items-center">
+              <label>Nama Rider:</label>
+              <input type="text" id="rider" class="border rounded-md p-1 w-1/2" />
+            </div>
+            <div class="flex justify-between items-center">
+              <label>QRIS:</label>
+              <input type="number" id="qris" class="border rounded-md p-1 w-1/2" value="0" />
+            </div>
+            <div class="flex justify-between items-center">
+              <label>Cash:</label>
+              <span id="cash" class="font-medium">Rp 0</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <label>Bayar:</label>
+              <input type="number" id="bayar" class="border rounded-md p-1 w-1/2" value="0" />
+            </div>
+            <div class="flex justify-between items-center">
+              <label>Selisih:</label>
+              <span id="selisih" class="font-medium">Rp 0</span>
+            </div>
+          </div>
+
+          <button id="simpan-transaksi" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition mt-4">Simpan Transaksi</button>
+          <div id="status" class="text-center mt-4 text-sm"></div>
+        </div>
+      </div>
+      <div id="page-transaksi" class="hidden p-4">History Transaksi</div>
+      <div id="page-setting" class="hidden p-4">Pengaturan</div>
+    </div>
+
+    <!-- Navbar Bottom -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 shadow-md">
+      <button data-page="home" class="tab-button text-sm">🏠<br>Home</button>
+      <button data-page="income" class="tab-button text-sm">📈<br>Pendapatan</button>
+      <button data-page="checkout" class="tab-button text-sm font-bold text-blue-600">🧾<br>Kasir</button>
+      <button data-page="transaksi" class="tab-button text-sm">🗃️<br>Transaksi</button>
+      <button data-page="setting" class="tab-button text-sm">⚙️<br>Setting</button>
+    </div>
+  </div>
+
+  <script>
+    const produkTetap = [
+      { nama: 'Kopi Susu', harga: 10000 },
+      { nama: 'Kopi Hitam', harga: 6000 },
+      { nama: 'Caramel Latte', harga: 12000 },
+      { nama: 'Vanilla Latte', harga: 12000 },
+      { nama: 'Choco Hazelnut', harga: 10000 },
+      { nama: 'Taro', harga: 8000 },
+      { nama: 'Matcha', harga: 8000 },
+      { nama: 'Thai Tea', harga: 8000 },
+    ];
+
+    const list = document.getElementById('produk-list');
+    const totalEl = document.getElementById('total-harga');
+    const jumlahEl = document.getElementById('total-jumlah');
+    const simpanBtn = document.getElementById('simpan-transaksi');
+    const statusEl = document.getElementById('status');
+    const qrisInput = document.getElementById('qris');
+    const cashDisplay = document.getElementById('cash');
+    const bayarInput = document.getElementById('bayar');
+    const selisihDisplay = document.getElementById('selisih');
+
+    const hitungTotal = () => {
+      let total = 0;
+      let jumlah = 0;
+      list.querySelectorAll('.produk-item').forEach(item => {
+        const qty = parseInt(item.querySelector('.jumlah').value) || 0;
+        const harga = parseInt(item.dataset.harga);
+        total += qty * harga;
+        jumlah += qty;
+      });
+      totalEl.textContent = total.toLocaleString('id-ID');
+      jumlahEl.textContent = jumlah;
+      updateCashSelisih();
+    };
+
+    const renderProduk = () => {
+      produkTetap.forEach(({ nama, harga }) => {
+        const div = document.createElement('div');
+        div.className = 'produk-item flex items-center gap-2';
+        div.dataset.harga = harga;
+        div.innerHTML = `
+          <div class="flex-1">
+            <div class="font-medium">${nama}</div>
+            <div class="text-sm text-gray-500">Rp ${harga.toLocaleString('id-ID')}</div>
+          </div>
+          <div class="flex items-center gap-1">
+            <button class="kurang px-2 bg-gray-200 rounded">-</button>
+            <input type="number" min="0" value="0" class="jumlah w-16 text-center border rounded-md p-1 appearance-none" />
+            <button class="tambah px-2 bg-gray-200 rounded">+</button>
+          </div>
+        `;
+        const inputJumlah = div.querySelector('.jumlah');
+        const btnKurang = div.querySelector('.kurang');
+        const btnTambah = div.querySelector('.tambah');
+
+        btnKurang.onclick = () => {
+          inputJumlah.value = Math.max(0, parseInt(inputJumlah.value) - 1);
+          hitungTotal();
+        };
+        btnTambah.onclick = () => {
+          inputJumlah.value = parseInt(inputJumlah.value) + 1;
+          hitungTotal();
+        };
+        inputJumlah.oninput = hitungTotal;
+
+        list.appendChild(div);
+      });
+    };
+
+    const updateCashSelisih = () => {
+      const total = parseInt(totalEl.textContent.replace(/\./g, '')) || 0;
+      const qris = parseInt(qrisInput.value) || 0;
+      const bayar = parseInt(bayarInput.value) || 0;
+      const cash = total - qris;
+      const selisih = bayar - cash;
+
+      cashDisplay.textContent = 'Rp ' + cash.toLocaleString('id-ID');
+      selisihDisplay.textContent = 'Rp ' + selisih.toLocaleString('id-ID');
+      selisihDisplay.className = 'font-medium ' + (selisih < 0 ? 'text-red-600' : 'text-green-600');
+    };
+
+    qrisInput.oninput = updateCashSelisih;
+    bayarInput.oninput = updateCashSelisih;
+
+    renderProduk();
+
+    simpanBtn.onclick = () => {
+      document.getElementById('status').innerHTML = '<div class="mt-4 p-4 rounded bg-green-100 text-green-800 text-center font-medium">Transaksi berhasil disimpan!</div>';
+      list.querySelectorAll('.jumlah').forEach(i => i.value = 0);
+      qrisInput.value = 0;
+      bayarInput.value = 0;
+      hitungTotal();
+    };
+
+    document.querySelectorAll('.tab-button').forEach(btn => {
+      btn.onclick = () => {
+        const page = btn.dataset.page;
+        document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden'));
+        document.getElementById('page-' + page).classList.remove('hidden');
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('text-blue-600', 'font-bold'));
+        btn.classList.add('text-blue-600', 'font-bold');
+      };
+    });
+  </script>
+</body>
+</html>
